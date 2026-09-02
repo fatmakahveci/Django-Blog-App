@@ -1,51 +1,62 @@
-![header.png](header.png)
-
-# Blog App
+# Django Blog App
 
 [![Last commit](https://img.shields.io/github/last-commit/fatmakahveci/Django-Blog-App)](https://github.com/fatmakahveci/Django-Blog-App/commits/main)
 [![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-web%20app-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE.md)
 
-🎯 A project for learning purposes.
+A minimal server-rendered Django blog project for practicing application structure, URL routing, views, templates, and local development.
 
-🦦 You can check my [Django](https://fatmakahveci.com/django-note/django/) and [python](https://fatmakahveci.com/python-note/) notes in my blog.
+## Highlights
 
-## Installation
+- Dedicated Django project and blog application packages
+- Root blog route and Django admin integration
+- Server-rendered application structure
+- Simple foundation for expanding posts and templates
 
-```bash
-# Clone the repository
-git clone https://github.com/fatmakahveci/Django-Blog-App.git
-```
+## Technology
 
-```bash
-# Go to the directory
-cd Django-Blog-App
-```
+- Python
+- Django
+- SQLite
+- Django Templates
 
-```bash
-# Create a virtual environment
-python3.11 -m venv env
-```
+## Getting Started
 
-```bash
-# activate the virtual env
-source env/bin/activate
-```
+### Prerequisites
 
-```bash
-# install packages
-pip install -r requirements.txt
-```
+- Python 3.11 or newer
+- pip
+
+### Installation
 
 ```bash
-cd backend
-```
-
-```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install Django
+cd my_site
 python manage.py migrate
-```
-
-```bash
 python manage.py runserver
 ```
+
+Open http://127.0.0.1:8000.
+
+## Quality Checks
+
+```bash
+cd my_site && python manage.py check
+cd my_site && python manage.py test
+```
+
+## Repository Structure
+
+- `my_site/blog_app` — application views, models, and URLs
+- `my_site/my_site` — project settings and root routing
+- `header.png` — repository preview image
+
+## Project Resources
+
+- [Changelog](CHANGELOG.md)
+- [Contributing guide](.github/CONTRIBUTING.md)
+- [Security policy](.github/SECURITY.md)
+- [License](LICENSE.md)

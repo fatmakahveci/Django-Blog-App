@@ -1,20 +1,28 @@
 {% extends 'blog/base.html' %}
-{% block title %}{{ post.title }} · Folio{% endblock %}
+{% block title %}{% if is_preview %}Preview: {% endif %}{{ post.title }} · Folio{% endblock %}
 {% block description %}{{ post.summary }}{% endblock %}
 {% block social_meta %}
+{% if not is_preview %}
 <meta property="og:type" content="article">
 <meta property="og:title" content="{{ post.title }}">
 <meta property="og:description" content="{{ post.summary }}">
 <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ canonical_path }}">
 <meta property="article:published_time" content="{{ post.published_at|date:'c' }}">
 <meta property="article:modified_time" content="{{ post.updated_at|date:'c' }}">
+{% endif %}
 {% endblock %}
 {% block content %}
+{% if is_preview %}
+<aside class="preview-banner" aria-label="Private article preview">
+  <div><strong>Saved article preview</strong><p>{{ preview_status }}. This preview is visible only to editors with article access.</p></div>
+  {% if can_edit_post %}<a class="pill-button" href="{% url 'admin:blog_app_post_change' post.pk %}">Back to editing ↗</a>{% else %}<a class="pill-button" href="{% url 'admin:blog_app_post_changelist' %}">Back to articles ↗</a>{% endif %}
+</aside>
+{% endif %}
 <div class="reading-progress" role="progressbar" aria-label="Reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span></span></div>
-<article class="article-page">
+<article class="article-page" {% if not is_preview %}data-reader-post="{{ post.pk }}"{% endif %}>
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="{% url 'home' %}">Journal</a><span aria-hidden="true">/</span>
-    {% if post.category %}<a href="{{ post.category.get_absolute_url }}">{{ post.category.name }}</a>{% else %}<span>Notes</span>{% endif %}
+    {% if post.category %}{% if is_preview %}<span>{{ post.category.name }}</span>{% else %}<a href="{{ post.category.get_absolute_url }}">{{ post.category.name }}</a>{% endif %}{% else %}<span>Notes</span>{% endif %}
   </nav>
   <header class="article-header">
     <p class="eyebrow">{% if post.category %}{{ post.category.name }}{% else %}FROM THE JOURNAL{% endif %}<span class="reading-time">{% include 'blog/_icon.html' with name='clock' %} {{ post.reading_minutes }} MIN READ</span></p>
@@ -23,24 +31,32 @@
     <div class="article-byline">
       <div class="byline-author">
         <span class="author-avatar" aria-hidden="true">{{ post.author_name|first }}</span>
-        <div><a href="{% url 'author' post.author_id %}">{{ post.author_name }}</a><time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:'F j, Y' }}</time></div>
+        <div>{% if is_preview %}<span>{{ post.author_name }}</span>{% else %}<a href="{% url 'author' post.author_id %}">{{ post.author_name }}</a>{% endif %}<time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:'F j, Y' }}</time></div>
       </div>
-      <div class="article-tools">
+      {% if not is_preview %}<div class="article-tools">
         {% include 'blog/_save_button.html' %}
         <button class="share-button js-control" type="button" data-share hidden>{% include 'blog/_icon.html' with name='copy' %} Copy link</button>
         <a class="discussion-link" href="#comments" aria-label="Read comments">{% include 'blog/_icon.html' with name='message' %}<span>{{ comment_page.paginator.count }}</span></a>
-      </div>
+      </div>{% endif %}
     </div>
   </header>
+  {% include 'blog/_reader_controls.html' %}
   <div class="article-cover">{% include 'blog/_cover.html' %}</div>
   <div class="prose" data-article-body>{{ post.body|linebreaks }}</div>
   <div class="article-end">
     <span aria-hidden="true">✳</span>
     <p>One more thought. Another page worth keeping.</p>
-    <div class="tag-list">{% for tag in tags %}<a href="{{ tag.get_absolute_url }}">#{{ tag.name }}</a>{% endfor %}</div>
+    <div class="tag-list">{% for tag in tags %}{% if is_preview %}<span>#{{ tag.name }}</span>{% else %}<a href="{{ tag.get_absolute_url }}">#{{ tag.name }}</a>{% endif %}{% endfor %}</div>
   </div>
 </article>
-{% include 'blog/_comments.html' %}
+{% if reading_collection %}
+<nav class="reading-path" aria-label="Collection reading order"><p class="eyebrow">PART OF A READING COLLECTION</p><h2><a href="{{ reading_collection.get_absolute_url }}">{{ reading_collection.name }}</a></h2><div>
+  {% if previous_entry %}<a href="{{ previous_entry.post.get_absolute_url }}?collection={{ reading_collection.slug }}"><span>← Previous story</span><strong>{{ previous_entry.post.title }}</strong></a>{% endif %}
+  {% if next_entry %}<a href="{{ next_entry.post.get_absolute_url }}?collection={{ reading_collection.slug }}"><span>Next in this collection →</span><strong>{{ next_entry.post.title }}</strong></a>{% else %}<a href="{% url 'collections' %}"><span>You’ve reached the last story.</span><strong>Find your next collection ↗</strong></a>{% endif %}
+</div></nav>
+{% endif %}
+{% if not is_preview %}{% include 'blog/_engagement.html' %}{% endif %}
+{% if not is_preview %}{% include 'blog/_comments.html' %}{% endif %}
 {% if related_posts %}
 <section class="related-section">
   <div class="section-heading">

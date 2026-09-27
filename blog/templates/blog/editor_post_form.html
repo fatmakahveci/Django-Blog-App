@@ -1,0 +1,8 @@
+{% extends 'admin/change_form.html' %}
+{% block object-tools-items %}
+  {{ block.super }}
+  {% if original %}<li><a href="{% url 'admin:blog_app_post_preview' original.pk %}">Preview saved article</a></li>{% endif %}
+{% endblock %}
+{% block form_top %}
+  <p class="editor-hint">Start with a title and your story. Save and continue editing, then select “Preview saved article” to review the layout. Only saved changes appear in the preview.</p>
+{% endblock %}

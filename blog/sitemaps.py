@@ -20,7 +20,16 @@ class HomeSitemap(Sitemap):
     priority = 1.0
 
     def items(self):
-        return ['home']
+        return ['home', 'discover', 'collections']
 
     def location(self, item):
         return reverse(item)
+
+
+class CollectionSitemap(Sitemap):
+    changefreq = 'weekly'
+    priority = 0.6
+
+    def items(self):
+        from .discovery import public_collections
+        return public_collections()

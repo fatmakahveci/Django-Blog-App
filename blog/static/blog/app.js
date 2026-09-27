@@ -10,6 +10,7 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { toast.hidden = true; }, 3500);
   }
+  window.addEventListener('folio:announce', event => announce(event.detail));
   function readSaved() {
     try {
       const value = JSON.parse(localStorage.getItem(key) || '[]');
@@ -111,6 +112,7 @@
       const percent = Math.min(100, Math.max(0, (innerHeight * 0.3 - box.top) / height * 100));
       progress.firstElementChild.style.width = `${percent}%`;
       progress.setAttribute('aria-valuenow', String(Math.round(percent)));
+      window.dispatchEvent(new CustomEvent('folio:reading-progress', { detail: percent }));
       queued = false;
     }
     function queueProgress() { if (!queued) { queued = true; requestAnimationFrame(updateProgress); } }

@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
 
-from blog.models import Post
+from blog.models import Collection, Poll, PollVote, Post, Reaction
 
 
 class DemoContentTests(TestCase):
@@ -22,3 +22,8 @@ class DemoContentTests(TestCase):
         self.assertFalse(author.is_active)
         self.assertFalse(author.is_staff)
         self.assertFalse(author.has_usable_password())
+        self.assertEqual(Collection.objects.count(), 2)
+        self.assertEqual(Poll.objects.count(), 1)
+        self.assertEqual(Poll.objects.get().choices.count(), 3)
+        self.assertFalse(PollVote.objects.exists())
+        self.assertFalse(Reaction.objects.exists())

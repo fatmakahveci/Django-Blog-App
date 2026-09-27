@@ -1,0 +1,3 @@
+# Optional tools for browser verification and recording docs/assets/demo.gif.
+playwright==1.63.0
+Pillow==12.3.0

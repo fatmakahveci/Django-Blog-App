@@ -1,0 +1,25 @@
+<article class="post-card" data-card-id="{{ post.pk }}">
+  <a class="cover-link" href="{{ post.get_absolute_url }}" tabindex="-1" aria-hidden="true">
+    {% include 'blog/_cover.html' %}
+    <span class="cover-open">{% include 'blog/_icon.html' with name='arrow' %}</span>
+  </a>
+  <div class="card-content">
+    <div class="card-meta">
+      <span>{% if post.category %}<a href="{{ post.category.get_absolute_url }}">{{ post.category.name }}</a>{% else %}Notes{% endif %}</span>
+      <span>{{ post.reading_minutes }} min read</span>
+    </div>
+    <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
+    <p class="card-summary">{{ post.summary }}</p>
+    <div class="card-bottom">
+      <div class="card-author">
+        <a href="{% url 'author' post.author_id %}">{{ post.author_name }}</a>
+        <time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:'M j, Y' }}</time>
+      </div>
+      {% include 'blog/_save_button.html' %}
+    </div>
+    <div class="card-tags">
+      {% for tag in post.tags.all %}<a href="{{ tag.get_absolute_url }}">#{{ tag.name }}</a>{% endfor %}
+      <a class="comment-count" href="{{ post.get_absolute_url }}#comments">{{ post.comment_count }} comment{{ post.comment_count|pluralize }}</a>
+    </div>
+  </div>
+</article>

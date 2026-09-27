@@ -1,0 +1,51 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="{% static 'blog/favicon.svg' %}">
+  <link rel="preload" href="{% static 'blog/fonts/inter-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{% static 'blog/fonts/source-serif-4-latin-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <title>{% block title %}Folio — Make room for good ideas.{% endblock %}</title>
+  <meta name="description" content="{% block description %}Thoughtful stories about technology, design, and everyday life. Pause, read, and leave with a new idea.{% endblock %}">
+  <link rel="alternate" type="application/rss+xml" title="Folio RSS" href="{% url 'rss' %}">
+  {% if canonical_path %}<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ canonical_path }}">{% endif %}
+  <meta property="og:site_name" content="Folio">
+  {% block social_meta %}
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Folio — Make room for good ideas.">
+  {% endblock %}
+  {% if is_reading_list or q %}<meta name="robots" content="noindex,follow">{% endif %}
+  <link rel="stylesheet" href="{% static 'blog/styles.css' %}">
+  <script src="{% static 'blog/theme.js' %}"></script>
+  <script src="{% static 'blog/app.js' %}" defer></script>
+</head>
+<body data-reading-list="{{ is_reading_list|yesno:'true,false' }}">
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <div class="container header-row">
+      <div class="brand-lockup">
+        <a class="brand" href="{% url 'home' %}" aria-label="Folio home">folio<span class="brand-dot">.</span></a>
+        <span class="brand-note">Ideas worth<br>your attention.</span>
+      </div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="{% url 'home' %}" {% if is_home %}aria-current="page"{% endif %}>Articles</a>
+        <a data-reading-list-link href="{% url 'reading_list' %}" {% if is_reading_list %}aria-current="page"{% endif %}>{% include 'blog/_icon.html' with name='bookmark' %} Reading list <span data-saved-count class="count">0</span></a>
+        <a class="rss-link" href="{% url 'rss' %}">{% include 'blog/_icon.html' with name='rss' %} RSS</a>
+      </nav>
+      <button class="theme-toggle js-control" type="button" data-theme-toggle aria-label="Switch to dark theme" aria-pressed="false" hidden>{% include 'blog/_icon.html' with name='moon' %}{% include 'blog/_icon.html' with name='sun' %}</button>
+    </div>
+  </header>
+  <main id="content" class="container">
+    {% if messages %}<div class="messages" role="status">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer container">
+    <div><a class="brand" href="{% url 'home' %}">folio<span class="brand-dot">.</span></a><p>A little curiosity. A little reflection. A fresh page.</p></div>
+    <div class="footer-links"><a href="{% url 'rss' %}">Follow via RSS ↗</a><a href="{% url 'home' %}">All articles</a>{% if user.is_staff %}<a href="{% url 'admin:index' %}">Editor dashboard</a>{% endif %}</div>
+    <span class="footer-note">Made for unhurried reading.</span>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

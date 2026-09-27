@@ -17,11 +17,12 @@ documentation improvements, tests, and well-scoped features are welcome.
 2. Follow the setup and development instructions in the repository README.
 3. Keep changes focused and consistent with the existing code style.
 4. Add or update tests and documentation when behavior changes.
-5. Run the available lint, type-check, test, and build commands before opening
-   a pull request.
+5. Run `python manage.py check`, `python manage.py makemigrations --check --dry-run`,
+   and `python manage.py test`. For interface changes, run the optional browser
+   checks documented in the README and refresh the demo when appropriate.
 
-Use a short, descriptive branch name such as `fix/cart-total` or
-`feat/product-filter`. Write clear commit messages in the imperative mood and
+Use a short, descriptive branch name such as `fix/comment-pagination` or
+`feat/article-filter`. Write clear commit messages in the imperative mood and
 avoid mixing unrelated changes in one commit.
 
 ## Pull Requests

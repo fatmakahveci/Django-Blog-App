@@ -1,0 +1,48 @@
+<section class="comments-section" id="comments">
+  <div class="section-heading">
+    <h2>Over to you<span class="heading-dot">.</span></h2>
+    <span>{{ comment_page.paginator.count }} comment{{ comment_page.paginator.count|pluralize }}</span>
+  </div>
+  <div class="comments-layout">
+    <div class="comments-list">
+      {% for comment in comments %}
+      <article class="comment">
+        <div>
+          <strong>{{ comment.name }}</strong>
+          <time datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|date:'M j, Y' }}</time>
+        </div>
+        {{ comment.body|linebreaks }}
+      </article>
+      {% empty %}
+      <p class="muted">Start the conversation. What did this story make you think about?</p>
+      {% endfor %}
+      {% if comment_page.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="Comment pages">
+        {% if comment_page.has_previous %}
+        <a href="?comments_page={{ comment_page.previous_page_number }}#comments">← Previous comments</a>
+        {% else %}<span></span>{% endif %}
+        <span>{{ comment_page.number }} / {{ comment_page.paginator.num_pages }}</span>
+        {% if comment_page.has_next %}
+        <a href="?comments_page={{ comment_page.next_page_number }}#comments">Next comments →</a>
+        {% else %}<span></span>{% endif %}
+      </nav>
+      {% endif %}
+    </div>
+    <form method="post" action="{% url 'add_comment' post.slug %}#comments" class="comment-form">
+      {% csrf_token %}
+      <h3>Leave a note</h3>
+      <p>Comments are reviewed before publication.</p>
+      {{ comment_form.non_field_errors }}
+      <div class="honeypot" aria-hidden="true">
+        <label for="id_website">Leave this field empty</label>
+        <input id="id_website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+      {% if comment_form.website.errors %}<p class="errorlist">We could not verify your submission.</p>{% endif %}
+      <label for="{{ comment_form.name.id_for_label }}">{{ comment_form.name.label }}</label>
+      {{ comment_form.name }}{{ comment_form.name.errors }}
+      <label for="{{ comment_form.body.id_for_label }}">{{ comment_form.body.label }}</label>
+      {{ comment_form.body }}{{ comment_form.body.errors }}
+      <button class="pill-button" type="submit">Post comment ↗</button>
+    </form>
+  </div>
+</section>

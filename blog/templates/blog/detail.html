@@ -1,0 +1,53 @@
+{% extends 'blog/base.html' %}
+{% block title %}{{ post.title }} · Folio{% endblock %}
+{% block description %}{{ post.summary }}{% endblock %}
+{% block social_meta %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ post.title }}">
+<meta property="og:description" content="{{ post.summary }}">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ canonical_path }}">
+<meta property="article:published_time" content="{{ post.published_at|date:'c' }}">
+<meta property="article:modified_time" content="{{ post.updated_at|date:'c' }}">
+{% endblock %}
+{% block content %}
+<div class="reading-progress" role="progressbar" aria-label="Reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span></span></div>
+<article class="article-page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'home' %}">Journal</a><span aria-hidden="true">/</span>
+    {% if post.category %}<a href="{{ post.category.get_absolute_url }}">{{ post.category.name }}</a>{% else %}<span>Notes</span>{% endif %}
+  </nav>
+  <header class="article-header">
+    <p class="eyebrow">{% if post.category %}{{ post.category.name }}{% else %}FROM THE JOURNAL{% endif %}<span class="reading-time">{% include 'blog/_icon.html' with name='clock' %} {{ post.reading_minutes }} MIN READ</span></p>
+    <h1>{{ post.title }}</h1>
+    <p class="article-deck">{{ post.summary }}</p>
+    <div class="article-byline">
+      <div class="byline-author">
+        <span class="author-avatar" aria-hidden="true">{{ post.author_name|first }}</span>
+        <div><a href="{% url 'author' post.author_id %}">{{ post.author_name }}</a><time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:'F j, Y' }}</time></div>
+      </div>
+      <div class="article-tools">
+        {% include 'blog/_save_button.html' %}
+        <button class="share-button js-control" type="button" data-share hidden>{% include 'blog/_icon.html' with name='copy' %} Copy link</button>
+        <a class="discussion-link" href="#comments" aria-label="Read comments">{% include 'blog/_icon.html' with name='message' %}<span>{{ comment_page.paginator.count }}</span></a>
+      </div>
+    </div>
+  </header>
+  <div class="article-cover">{% include 'blog/_cover.html' %}</div>
+  <div class="prose" data-article-body>{{ post.body|linebreaks }}</div>
+  <div class="article-end">
+    <span aria-hidden="true">✳</span>
+    <p>One more thought. Another page worth keeping.</p>
+    <div class="tag-list">{% for tag in tags %}<a href="{{ tag.get_absolute_url }}">#{{ tag.name }}</a>{% endfor %}</div>
+  </div>
+</article>
+{% include 'blog/_comments.html' %}
+{% if related_posts %}
+<section class="related-section">
+  <div class="section-heading">
+    <div><p class="eyebrow">KEEP EXPLORING</p><h2>Your next read<span class="heading-dot">.</span></h2></div>
+    <a href="{% url 'home' %}" class="text-link">All articles {% include 'blog/_icon.html' with name='arrow' %}</a>
+  </div>
+  <div class="post-grid">{% for post in related_posts %}{% include 'blog/_card.html' %}{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,6 @@
+<div class="cover-art cover-{{ post.cover_style }}" aria-hidden="true">
+  <span class="cover-kicker">FOLIO / A COLLECTION OF IDEAS</span>
+  <span class="art-disc"></span><span class="art-window"></span><span class="art-rule"></span>
+  <span class="art-letter">{% if post.cover_style == 'ink' %}a{% elif post.cover_style == 'clay' %}&amp;{% elif post.cover_style == 'sky' %}i{% else %}f{% endif %}</span>
+  <span class="cover-footer">{{ post.category.name|default:'Notes' }} <span>↗</span></span>
+</div>

@@ -5,7 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from blog.models import Comment, Post
+from blog.models import Comment, Post, SubmissionQuota
 
 
 class CommentTests(TestCase):
@@ -85,7 +85,7 @@ class CommentTests(TestCase):
             self.assertEqual(Client().post(self.url, self.data).status_code, 302)
         blocked = Client().post(self.url, self.data, HTTP_X_FORWARDED_FOR='192.0.2.9')
         self.assertEqual(blocked.status_code, 429)
-        self.assertEqual(blocked['Retry-After'], '600')
+        self.assertTrue(1 <= int(blocked['Retry-After']) <= 600)
         self.assertEqual(Comment.objects.count(), 3)
-        Comment.objects.update(created_at=timezone.now() - timedelta(minutes=11))
+        SubmissionQuota.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
         self.assertEqual(self.client.post(self.url, self.data).status_code, 302)

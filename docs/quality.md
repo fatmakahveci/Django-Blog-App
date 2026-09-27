@@ -12,8 +12,12 @@ The thirty publication and reader features are described in [features.md](featur
 - Approved comments load twenty at a time in stable chronological order.
   A composite index supports post, approval, and ordering lookups. Pending
   comments never contribute to the public list or count.
-- Submission throttling checks whether a third recent comment exists, instead
-  of counting an entire history. A digest/time index supports that lookup.
+- Submission quotas use an atomic conditional database update, shared across
+  workers. Each peer address has a separate allowance of three comments and
+  thirty reaction/vote requests per ten-minute window starting with its first
+  request. Cookie changes and forged forwarding headers do not reset a quota.
+  Only keyed address digests are stored. Creating a quota removes at most one
+  hundred expired entries, keeping cleanup bounded; existing quotas are reused.
 - Related suggestions are capped at three; RSS is capped at twenty entries;
   reading lists accept at most one hundred IDs.
 - Followed topics and reading history accept at most twenty IDs. Discovery
@@ -60,10 +64,19 @@ reading. These checks do not replace a complete assistive-technology audit.
 ## Reliability and security
 
 Publication visibility is shared by listings, details, authors, feeds, and
-sitemaps. Regression tests cover drafts and scheduled posts across these
+sitemaps. Categories and tags without a published article return 404, preventing
+disclosure of unpublished editorial names and descriptions. Regression tests cover drafts and scheduled posts across these
 surfaces, user permissions, escaping, CSRF, and login/submission throttling.
 Comments require editorial approval. Rate limits discourage automated abuse;
 they do not replace proxy-level traffic controls under high concurrent load.
+HTTP 429 responses include a `Retry-After` header. Readers sharing a network
+address share its quota. A reverse proxy needs trusted client-IP configuration
+as described in README; arbitrary forwarding headers remain ignored.
+
+An enforced Content Security Policy restricts scripts and form destinations
+to the same origin, blocks inline scripts/eval, embedding, plugin content, and
+base-URL overrides. Inline styles remain enabled for admin widgets. Browser
+checks verify normal controls and confirm an injected inline script is blocked.
 
 The 404 page links readers back to the journal. The 500 page needs no database
 queries, authentication context, or application scripts to render. Django uses
@@ -97,8 +110,8 @@ for that identity. Reactions can be changed or removed, while a poll vote is fin
 Closed or incomplete polls reject new votes. Poll questions and answers become
 read-only in the admin once votes exist, preserving the meaning of the results.
 This is a low-friction participation mechanism, not verified identity or a
-fraud-resistant voting system; clearing cookies or switching browsers bypasses
-the per-browser limit.
+fraud-resistant voting system; clearing cookies or switching browsers creates
+a separate identity, but does not reset the shared network submission quota.
 
 Reader controls work without accounts. Topic following and history handle
 unavailable or malformed browser storage without breaking reading. History keeps

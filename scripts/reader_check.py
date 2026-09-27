@@ -1,10 +1,11 @@
 """Browser checks for reader features. Use a disposable, seeded demo database."""
 import argparse
 import os
+import re
 from pathlib import Path
 import tempfile
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 
 parser = argparse.ArgumentParser(description='Test the ten reader features on a disposable demo instance. Submits a reaction and a poll vote.')
@@ -85,11 +86,11 @@ with sync_playwright() as runtime:
       const box = document.querySelector('[data-article-body]').getBoundingClientRect();
       scrollTo({top: scrollY + box.top - innerHeight * .3 + Math.max(1, box.height - innerHeight * .5) * .45, behavior: 'instant'});
     }""")
-    page.wait_for_function("Number(document.querySelector('.reading-progress').getAttribute('aria-valuenow')) >= 40")
+    expect(page.locator('.reading-progress')).to_have_attribute('aria-valuenow', re.compile(r'(?:[4-9][0-9]|100)'))
     page.get_by_role('link', name='Continue reading', exact=True).click()
     page.wait_for_load_state('networkidle')
     page.locator('[data-resume-card]').first.click()
-    page.wait_for_function("Number(document.querySelector('.reading-progress').getAttribute('aria-valuenow')) >= 35")
+    expect(page.locator('.reading-progress')).to_have_attribute('aria-valuenow', re.compile(r'(?:3[5-9]|[4-9][0-9]|100)'))
     page.get_by_role('button', name='Resume at').wait_for()
     second = context.new_page()
     second.goto(article_url, wait_until='networkidle')

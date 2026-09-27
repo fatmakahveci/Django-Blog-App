@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
@@ -7,14 +5,13 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
-from django.utils.crypto import salted_hmac
 from django.views.decorators.http import require_POST, require_safe
 from django.views.decorators.cache import never_cache
 
 from .forms import CommentForm
 from .engagement import engagement_context, reader_identity, remember_reader
-from .models import Category, CollectionEntry, Comment, Poll, PollVote, Post, Reaction, Tag
+from .models import Category, CollectionEntry, Poll, PollVote, Post, Reaction, Tag
+from .rate_limits import client_digest, submission_retry_after
 
 
 SORTS = {'newest': ('-published_at', '-pk'), 'oldest': ('published_at', 'pk'), 'discussed': ('-comment_count', '-published_at', '-pk')}
@@ -50,13 +47,13 @@ def home(request):
 
 @require_safe
 def category(request, slug):
-    topic = get_object_or_404(Category, slug=slug)
+    topic = get_object_or_404(Category.objects.filter(posts__in=Post.objects.published()).distinct(), slug=slug)
     return render_listing(request, Post.objects.published().filter(category=topic), topic.name, topic.description, active_category=topic)
 
 
 @require_safe
 def tag(request, slug):
-    topic = get_object_or_404(Tag, slug=slug)
+    topic = get_object_or_404(Tag.objects.filter(posts__in=Post.objects.published()).distinct(), slug=slug)
     return render_listing(request, Post.objects.published().filter(tags=topic), f'#{topic.name}', 'Stories connected by a shared idea.')
 
 
@@ -108,6 +105,14 @@ def feedback_error(request, post, message, status=400):
     return render(request, 'blog/detail.html', detail_context(post, request), status=status)
 
 
+def feedback_limit_response(request, post):
+    retry_after = submission_retry_after(request, 'feedback', 30)
+    if retry_after:
+        response = feedback_error(request, post, 'Too many responses from this connection. Please try again in a few minutes.', status=429)
+        response['Retry-After'] = str(retry_after)
+        return response
+
+
 @never_cache
 @require_POST
 def react(request, slug):
@@ -115,6 +120,9 @@ def react(request, slug):
     kind = request.POST.get('kind', '')
     if kind not in {*Reaction.Kind.values, 'remove'}:
         return feedback_error(request, post, 'Choose a reaction from the available options.')
+    limited = feedback_limit_response(request, post)
+    if limited is not None:
+        return limited
     digest, token = reader_identity(request, create=kind != 'remove')
     if kind == 'remove':
         post.reactions.filter(reader_digest=digest).delete()
@@ -136,6 +144,9 @@ def vote(request, slug):
     choice = poll.choices.filter(pk=int(raw_choice)).first() if raw_choice.isascii() and raw_choice.isdigit() and len(raw_choice) <= 10 else None
     if not choice or poll.choices.count() < 2:
         return feedback_error(request, post, 'Choose an answer from this poll.')
+    limited = feedback_limit_response(request, post)
+    if limited is not None:
+        return limited
     digest, token = reader_identity(request, create=True)
     _, created = PollVote.objects.get_or_create(poll=poll, reader_digest=digest, defaults={'choice': choice})
     messages.success(request, 'Your vote is in. Thank you for taking part.' if created else 'You have already voted in this poll.')
@@ -148,17 +159,15 @@ def add_comment(request, slug):
     post = get_object_or_404(Post.objects.published().with_card_data(), slug=slug)
     form = CommentForm(request.POST)
     if form.is_valid():
-        digest = salted_hmac('blog.comment-client', request.META.get('REMOTE_ADDR', ''), algorithm='sha256').hexdigest()
-        recent = Comment.objects.filter(client_digest=digest, created_at__gte=timezone.now() - timedelta(minutes=10))
-        # Check only for the third row; counting a spam backlog is unnecessary.
-        if recent.order_by().values('pk')[2:3].exists():
+        retry_after = submission_retry_after(request, 'comment', 3)
+        if retry_after:
             form.add_error(None, 'You have posted several comments recently. Please try again in 10 minutes.')
             response = render(request, 'blog/detail.html', detail_context(post, request, form), status=429)
-            response['Retry-After'] = '600'
+            response['Retry-After'] = str(retry_after)
             return response
         comment = form.save(commit=False)
         comment.post = post
-        comment.client_digest = digest
+        comment.client_digest = client_digest(request, 'comment')
         comment.save()
         messages.success(request, 'Thank you for your comment. It will appear here after approval.')
         return redirect(post.get_absolute_url() + '#comments')

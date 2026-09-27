@@ -84,6 +84,10 @@ that history. Reactions and polls work without JavaScript and use a signed,
 HTTP-only browser cookie lasting up to a year. The server stores only a keyed
 digest of its random identifier. Browser limits are not verified person counts;
 clearing cookies or using another browser creates a separate identity.
+Reactions and votes also share a quota of thirty requests per network address
+per ten-minute window; comments have a separate three-request quota. A busy
+shared connection may receive a temporary retry message. Categories and tags
+remain private until an attached article is published.
 
 ## Verification
 

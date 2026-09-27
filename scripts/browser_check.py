@@ -1,8 +1,9 @@
 import argparse
 import os
+import re
 import tempfile
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 parser = argparse.ArgumentParser(description='Check Folio in an isolated browser against the eight-article demo dataset.')
 parser.add_argument('--base-url', default='http://127.0.0.1:8000')
@@ -16,6 +17,9 @@ with sync_playwright() as p:
     context = browser.new_context(viewport={'width': 1440, 'height': 1050}, color_scheme='light', permissions=['clipboard-read', 'clipboard-write'])
     page = context.new_page()
     errors = []
+    policy_errors = []
+    page.on('console', lambda message: policy_errors.append(message.text)
+            if message.type == 'error' and 'Content Security Policy' in message.text else None)
     page.on('pageerror', lambda error: errors.append(str(error)))
     assert page.goto(base_url + '/', wait_until='networkidle').status == 200
     assert page.locator('html').get_attribute('lang') == 'en'
@@ -53,7 +57,7 @@ with sync_playwright() as p:
     page.get_by_text('Article link copied.').wait_for()
     assert page.evaluate('navigator.clipboard.readText()') == page.url
     page.locator('.article-end').scroll_into_view_if_needed()
-    page.wait_for_function("Number(document.querySelector('.reading-progress').getAttribute('aria-valuenow')) > 50")
+    expect(page.locator('.reading-progress')).to_have_attribute('aria-valuenow', re.compile(r'(?:5[1-9]|[6-9][0-9]|100)'))
     page.get_by_role('link', name='Reading list').click()
     page.wait_for_load_state('networkidle')
     page.get_by_role('button', name='Saved').click()
@@ -74,6 +78,22 @@ with sync_playwright() as p:
     page.get_by_role('link', name='Next').click()
     page.wait_for_load_state('networkidle')
     assert page.locator('.post-card').count() == 1
+    assert page.goto(base_url + '/admin/login/', wait_until='networkidle').status == 200
+    assert page.get_by_label('Username:').is_visible()
+    assert not policy_errors, policy_errors
+    # Inject into the DOM as an attacker would; trusted automation evaluate()
+    # itself bypasses CSP and therefore cannot demonstrate script blocking.
+    page.evaluate("""() => {
+        window.inlineProbeRan = false;
+        document.addEventListener('securitypolicyviolation', event => {
+            document.body.dataset.blockedDirective = event.effectiveDirective;
+        });
+        const script = document.createElement('script');
+        script.textContent = 'window.inlineProbeRan = true';
+        document.body.append(script);
+    }""")
+    expect(page.locator('body')).to_have_attribute('data-blocked-directive', 'script-src-elem')
+    assert page.evaluate('window.inlineProbeRan') is False
     context.close()
     mobile_context = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, device_scale_factor=1, color_scheme='light')
     mobile = mobile_context.new_page()
@@ -104,5 +124,5 @@ with sync_playwright() as p:
     nojs.close()
     browser.close()
     assert not errors, errors
-print('Browser checks passed: theme persistence, featured/card bookmarks, sharing, reading progress, keyboard search and reset, pagination, 320–1440px layouts, sticky navigation, print layout, no-JS reading, and no JS errors.')
+print('Browser checks passed: theme persistence, featured/card bookmarks, sharing, reading progress, keyboard search and reset, pagination, 320–1440px layouts, sticky navigation, print layout, no-JS reading, CSP script blocking, and no JS errors.')
 print('Screenshots:', out)

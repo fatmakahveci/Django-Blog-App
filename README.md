@@ -139,7 +139,7 @@ An active staff user also needs the relevant model permissions to edit content.
 Post bodies are plain text with paragraph formatting; HTML is escaped.
 Comments are pending until approved in the admin. Names and comments are public
 after approval; commenter email addresses are not collected. A keyed IP digest
-limits repeated submissions to three per ten minutes; raw commenter IPs are not stored.
+supports an atomic quota of three comments per ten-minute window; raw commenter IPs are not stored.
 
 Readers can react and vote without accounts. A signed browser cookie keeps one
 reaction per article and one vote per poll; these counts do not represent verified
@@ -276,6 +276,21 @@ or an IP lock with `python manage.py axes_reset_ip IP_ADDRESS`. Both may need
 resetting when both limits have been reached.
 
 CI checks production settings and audits runtime and development dependencies.
+
+Reader feedback has a shared quota of 30 reaction/vote requests per peer address
+per ten-minute window, separate from the three-comment allowance. Windows start
+with the first submission; HTTP 429 responses report when to retry. Quotas use
+keyed address digests and atomic database updates, so clearing cookies, changing
+forwarded headers, or sending concurrent requests does not bypass them. Readers
+behind the same address share an allowance. Run migrations when updating to
+install the quota table; expired entries are removed gradually as new clients arrive.
+
+Categories and tags become public only when attached to a published article.
+The [Content Security Policy](https://docs.djangoproject.com/en/6.1/ref/csp/)
+allows scripts and form destinations only from this origin and blocks inline
+scripts, plugins, framing, and base-URL overrides. Inline styles remain allowed
+for editor widgets. Keep reverse-proxy request limits in place for broader
+traffic protection.
 
 ## Repository Structure
 

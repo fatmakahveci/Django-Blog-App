@@ -10,6 +10,11 @@ where applicable.
 
 ### Security
 
+- Bound reaction, poll, and comment submissions with atomic database quotas
+  that survive cookie changes, forged forwarding headers, and concurrent requests.
+- Hide category and tag metadata until an attached article is published.
+- Enforce a same-origin Content Security Policy and verify injected inline
+  script blocking in the browser regression checks.
 - Removed the committed development secret and require a private environment
   key. Disable debug by default and reject missing or wildcard deployment hosts.
 - Enable HTTPS redirection, secure cookies, HSTS, and explicit browser security

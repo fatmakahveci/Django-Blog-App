@@ -102,6 +102,18 @@ class RequestSecurityTests(TestCase):
         self.assertEqual(response['Referrer-Policy'], 'same-origin')
         self.assertEqual(response['Strict-Transport-Security'], 'max-age=3600')
 
+    def test_content_policy_protects_public_admin_and_error_responses(self):
+        for path in ('/', reverse('admin:login'), '/missing-page/'):
+            with self.subTest(path=path):
+                response = self.client.get(path, secure=True)
+                policy = response['Content-Security-Policy']
+                directives = dict(part.strip().split(' ', 1) for part in policy.split(';') if part.strip())
+                self.assertEqual(directives['script-src'], "'self'")
+                self.assertEqual(directives['object-src'], "'none'")
+                self.assertEqual(directives['base-uri'], "'none'")
+                self.assertEqual(directives['frame-ancestors'], "'none'")
+                self.assertEqual(directives['form-action'], "'self'")
+
     def test_cross_origin_login_is_rejected_even_with_a_valid_csrf_token(self):
         client = Client(enforce_csrf_checks=True)
         login_url = reverse('admin:login')

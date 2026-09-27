@@ -141,6 +141,13 @@ class Comment(models.Model):
         return f'{self.name}: {self.body[:50]}'
 
 
+class SubmissionQuota(models.Model):
+    # Separate keyed digests for each action group; never persist raw IPs.
+    key = models.CharField(max_length=64, primary_key=True, editable=False)
+    expires_at = models.DateTimeField(db_index=True)
+    used = models.PositiveSmallIntegerField(default=0)
+
+
 class Collection(Topic):
     description = models.CharField(max_length=300)
     is_public = models.BooleanField(default=False)

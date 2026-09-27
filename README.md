@@ -10,7 +10,11 @@ scheduled posts, moderated discussions, and a personal reading experience.
 
 ## Demo
 
-![Folio demo: articles, reading list, article detail, and dark theme](docs/assets/demo.gif)
+![Folio demo: Discover, topic following, personal feed, collections, article controls, focus reading, polls, saved articles, and dark theme](docs/assets/demo.gif)
+
+A 27-second tour of the live interface: discover stories, follow Design, explore
+a reading collection, adjust reading preferences, and save articles for later.
+The demo also shows reader reactions, polls, and the dark theme.
 
 ## Highlights
 
@@ -209,7 +213,10 @@ python scripts/record_demo.py
 The browser check covers desktop/mobile layouts, keyboard search, saved articles,
 theme persistence, sharing, print layout, and reading without JavaScript. It writes
 screenshots to a temporary `folio-browser` directory. The recorder regenerates
-`docs/assets/demo.gif` with five screens from the live app. Both commands accept
+`docs/assets/demo.gif` as a 27-second loop with nine scenes from the live app,
+including discovery, followed topics, collections, focus reading, feedback,
+saved articles, and dark mode. The recorder uses fresh browser storage and
+does not submit reactions, votes, or comments. Both commands accept
 `--base-url` and `--output`. Set `CHROME_PATH` to use an existing Chrome executable
 instead of Playwright's bundled Chromium.
 

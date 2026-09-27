@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from blog.models import Category, Post, Tag
+from blog.models import Category, Collection, CollectionEntry, Poll, PollChoice, Post, Tag
 
 
 # Stable slugs make repeated runs safe; existing editorial changes are preserved.
@@ -101,6 +101,7 @@ class Command(BaseCommand):
             author.set_unusable_password()
             author.save(update_fields=['password'])
         count = 0
+        posts = []
         for index, (slug, title, topic, cover, excerpt, names) in enumerate(ARTICLES):
             category, _ = Category.objects.get_or_create(name=topic)
             post, created = Post.objects.get_or_create(
@@ -115,4 +116,26 @@ class Command(BaseCommand):
             if created:
                 post.tags.set([Tag.objects.get_or_create(name=name)[0] for name in names])
                 count += 1
+            posts.append(post)
+        for name, slug, description, indexes in [
+            ('A calmer digital life', 'demo-a-calmer-digital-life',
+             'Make room for attention, slower reading, and small habits that last.', [0, 3, 6]),
+            ('From ideas to useful things', 'demo-from-ideas-to-useful-things',
+             'A short reading path through thoughtful design and making software for people.', [1, 2, 4, 5]),
+        ]:
+            collection, created = Collection.objects.get_or_create(slug=slug, defaults={
+                'name': name, 'description': description, 'is_public': True,
+            })
+            if created:
+                CollectionEntry.objects.bulk_create([
+                    CollectionEntry(collection=collection, post=posts[index], position=position)
+                    for position, index in enumerate(indexes, 1)
+                ])
+        poll, created = Poll.objects.get_or_create(post=posts[0], defaults={'question': 'Where do your best ideas usually begin?'})
+        if created:
+            PollChoice.objects.bulk_create([
+                PollChoice(poll=poll, label=label, position=position)
+                for position, label in enumerate(['A quiet moment', 'A conversation', 'Trying something new'], 1)
+            ])
         self.stdout.write(self.style.SUCCESS(f'{count} sample articles added. Existing content was preserved.'))
+        self.stdout.write('Sample collections and a reader poll are ready. No reactions or votes were generated.')

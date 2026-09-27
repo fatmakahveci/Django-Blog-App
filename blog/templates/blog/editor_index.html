@@ -1,0 +1,15 @@
+{% extends 'admin/index.html' %}
+{% block content %}
+<section class="editor-intro" aria-labelledby="editor-welcome">
+  <p class="editor-eyebrow">THE EDITOR’S DESK</p>
+  <h2 id="editor-welcome">Make your next idea a story.</h2>
+  <p>Write a draft, save it, and preview the article before publishing. Comments wait for your approval.</p>
+  <nav class="editor-actions" aria-label="Publishing shortcuts">
+    {% if perms.blog_app.add_post %}<a class="button" href="{% url 'admin:blog_app_post_add' %}">Write an article</a>{% endif %}
+    {% if perms.blog_app.view_post or perms.blog_app.change_post %}<a href="{% url 'admin:blog_app_post_changelist' %}">Manage articles</a>{% endif %}
+    {% if perms.blog_app.change_comment %}<a href="{% url 'admin:blog_app_comment_changelist' %}?approved__exact=0">Review pending comments</a>{% endif %}
+    <a href="{% url 'home' %}">Open publication ↗</a>
+  </nav>
+</section>
+{{ block.super }}
+{% endblock %}

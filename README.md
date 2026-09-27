@@ -19,8 +19,12 @@ scheduled posts, moderated discussions, and a personal reading experience.
 - Search, sorting, pagination, featured articles, and author pages
 - Moderated comments, saved reading lists, RSS, and search-engine discovery
 - Security defaults, login throttling, and regression tests
+- Guided local setup and permission-protected draft previews
+- Discovery by reading length, weekly trending, followed topics, and curated collections
+- Article reactions, reader polls, reading history/resume, focus controls, and read-aloud playback
 
-See the [20-feature guide](docs/features.md) for every feature and its entry point.
+See the [30-feature guide](docs/features.md) for every feature and its entry point.
+The ten reader additions start at **http://127.0.0.1:8000/discover/**.
 
 ## Technology
 
@@ -38,7 +42,63 @@ See the [20-feature guide](docs/features.md) for every feature and its entry poi
 
 The project uses Django 6.1.1 and Django Axes, pinned in `requirements.txt`.
 
-### Installation
+### Start locally
+
+From the project directory, run:
+
+```bash
+python3 start.py
+```
+
+The launcher creates `.venv`, installs the pinned runtime dependencies, generates
+a private `.env` when missing, checks configuration, and applies migrations.
+On the first interactive launch it asks you to create an editor username and
+password, then starts the app at **http://127.0.0.1:8000**. Existing settings,
+accounts, and articles are kept. Later launches reuse installed dependencies.
+Stop the server with **Ctrl+C**.
+
+Useful options:
+
+```bash
+python3 start.py --demo                       # Add sample articles, collections, and a poll
+python3 start.py --create-editor --setup-only # Create an editor without starting a server
+python3 start.py --setup-only                 # Prepare the app without interactive prompts
+python3 start.py --port 8001                  # Use another port if 8000 is occupied
+```
+
+Sample articles are optional and never overwrite existing content. The sample
+author cannot sign in. Demo collections and a poll are included, with no fabricated
+reactions or votes. Without an interactive terminal, setup prints the editor
+creation command and never creates a default password.
+
+The launcher is for local development and binds to `127.0.0.1`. It reads only
+`DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, and `DJANGO_ALLOWED_HOSTS` from `.env`, with
+shell environment variables taking precedence. Values are literal; shell commands
+and variable substitutions are not executed. Deployment settings are described below.
+
+### Publish your first article
+
+1. Select **Editor sign in** in the page footer, or open `/admin/` and sign in
+   with the account you created.
+2. Select **Write an article**. Add a title and body; the author defaults to
+   your account. Categories, tags, excerpt, and slug are optional.
+3. Keep the status **Draft**, select **Save and continue editing**, then
+   **Preview saved article**. Preview shows saved changes in the reader layout
+   and remains private to staff with article permissions.
+4. Return to editing, choose **Published / scheduled**, set the publication time,
+   and save. Past or current times publish immediately; future times schedule
+   the article. All editorial dates use **UTC**.
+
+Use **Review pending comments** on the editor dashboard to approve or hide
+reader comments. To set your public byline, a superuser can edit your first and
+last name under **Users**; email addresses are never displayed publicly.
+Passwords can be changed from the editor's **Change password** link. Account
+recovery is handled locally with `python manage.py changepassword USERNAME`
+after loading the environment as shown below; email reset is not configured.
+
+### Manual installation and management commands
+
+The launcher handles setup above. If you prefer to manage the environment yourself:
 
 ```bash
 python3 -m venv .venv
@@ -54,8 +114,9 @@ chmod 600 .env
 python -c 'import secrets; print("DJANGO_SECRET_KEY=" + secrets.token_urlsafe(64))' >> .env
 ```
 
-Keep an existing `.env` and its key when updating the project. Load the file
-in each new terminal before running Django commands; it is not loaded automatically:
+Keep an existing `.env` and its key when updating the project. For direct
+`manage.py` commands, activate `.venv` and load the file in each new terminal.
+Only `start.py` loads `.env` automatically:
 
 ```bash
 set -a
@@ -72,15 +133,18 @@ migrating. It adds eight sample articles without overwriting existing content.
 The sample author is inactive and has no usable password.
 
 Create your own editor account with `python manage.py createsuperuser`, then
-sign in at `/admin/`. Add categories/tags and create a post. Choose **Draft**
-to keep it private, or **Published / scheduled** to publish it. A future
-publication time keeps it private until that time (the admin uses UTC).
+sign in at `/admin/` and follow the publishing steps above.
 An active staff user also needs the relevant model permissions to edit content.
 
 Post bodies are plain text with paragraph formatting; HTML is escaped.
 Comments are pending until approved in the admin. Names and comments are public
 after approval; commenter email addresses are not collected. A keyed IP digest
-limits repeated submissions to three per ten minutes; raw commenter IPs are not stored.
+supports an atomic quota of three comments per ten-minute window; raw commenter IPs are not stored.
+
+Readers can react and vote without accounts. A signed browser cookie keeps one
+reaction per article and one vote per poll; these counts do not represent verified
+unique people. Followed topics, reading history, and reading preferences stay in
+browser storage. Read-aloud requires a browser with an installed local English voice.
 
 To update an existing virtual environment after pulling dependency changes:
 
@@ -100,7 +164,8 @@ python manage.py test
 python -m pip_audit -r requirements-dev.txt
 ```
 
-The suite covers publication visibility across all public surfaces, search,
+The suite covers first-run configuration, safe environment parsing, editor setup,
+private draft previews, the save/preview/publish workflow, publication visibility across all public surfaces, search,
 pagination, ordering, taxonomy, author privacy, comment moderation/spam controls,
 editor permissions, RSS/sitemaps, and query counts. Administration coverage includes
 login redirects, authentication, CSRF protection, secure cookies, throttling, and logout.
@@ -147,6 +212,18 @@ screenshots to a temporary `folio-browser` directory. The recorder regenerates
 `docs/assets/demo.gif` with five screens from the live app. Both commands accept
 `--base-url` and `--output`. Set `CHROME_PATH` to use an existing Chrome executable
 instead of Playwright's bundled Chromium.
+
+The ten new reader features have a separate browser check:
+
+```bash
+python scripts/reader_check.py --base-url http://127.0.0.1:8001
+```
+
+Run it against a **disposable demo instance**, populated by `seed_demo`, on that
+port. It submits a real reaction and poll vote in the test database. CI runs it
+after the original browser checks on a fresh database. It verifies following,
+collections, trending, voting, reading controls/history, responsive layouts,
+and unavailable browser capabilities. Audio controls use a test voice in CI.
 
 For implementation details and operational tradeoffs, see the
 [quality guide](docs/quality.md).
@@ -200,18 +277,34 @@ resetting when both limits have been reached.
 
 CI checks production settings and audits runtime and development dependencies.
 
+Reader feedback has a shared quota of 30 reaction/vote requests per peer address
+per ten-minute window, separate from the three-comment allowance. Windows start
+with the first submission; HTTP 429 responses report when to retry. Quotas use
+keyed address digests and atomic database updates, so clearing cookies, changing
+forwarded headers, or sending concurrent requests does not bypass them. Readers
+behind the same address share an allowance. Run migrations when updating to
+install the quota table; expired entries are removed gradually as new clients arrive.
+
+Categories and tags become public only when attached to a published article.
+The [Content Security Policy](https://docs.djangoproject.com/en/6.1/ref/csp/)
+allows scripts and form destinations only from this origin and blocks inline
+scripts, plugins, framing, and base-URL overrides. Inline styles remain allowed
+for editor widgets. Keep reverse-proxy request limits in place for broader
+traffic protection.
+
 ## Repository Structure
 
 ```text
 Django-Blog-App/
 ├── .github/            # CI workflows and contribution policies
 ├── blog/               # Blog application, migrations, and tests
-├── config/             # Django settings, root URLs, ASGI, and WSGI
+├── config/             # Django settings, admin templates, URLs, ASGI, and WSGI
 ├── docs/
 │   └── assets/          # Documentation images
 ├── scripts/            # Browser checks and demo recording
 ├── tests/              # Project integration tests
 ├── manage.py           # Django management commands
+├── start.py            # Guided local setup and startup
 ├── requirements.txt    # Pinned Python dependencies
 ├── requirements-dev.txt # Test and security audit tooling
 ├── requirements-browser.txt # Optional browser and GIF tooling

@@ -10,6 +10,11 @@ where applicable.
 
 ### Security
 
+- Bound reaction, poll, and comment submissions with atomic database quotas
+  that survive cookie changes, forged forwarding headers, and concurrent requests.
+- Hide category and tag metadata until an attached article is published.
+- Enforce a same-origin Content Security Policy and verify injected inline
+  script blocking in the browser regression checks.
 - Removed the committed development secret and require a private environment
   key. Disable debug by default and reject missing or wildcard deployment hosts.
 - Enable HTTPS redirection, secure cookies, HSTS, and explicit browser security
@@ -46,6 +51,17 @@ where applicable.
 
 ### Added
 
+- Added ten reader features: discovery by reading length, weekly trending,
+  followed topics/personal feed, ordered reading collections, reactions, polls,
+  reading history/resume, reading preferences/focus, local read-aloud, and random discovery.
+- Added editorial collection and poll management, repeat-safe demo content,
+  publication-aware navigation, browser identity protection, and regression checks.
+- Added a one-command local launcher with environment setup, dependency installation,
+  migrations, optional demo content, and guided editor account creation.
+- Added a visible editor sign-in link, branded publishing dashboard, writing
+  guidance, and permission-protected previews for saved drafts and scheduled articles.
+- Added regression coverage for first-run setup, safe environment loading,
+  editorial previews, and the complete save/preview/publish workflow.
 - Added English content and URLs throughout, distinct sample articles, keyboard
   search, print layouts, social metadata, and custom recovery pages.
 - Paginated approved comments, indexed discussion/rate-limit lookups, and

@@ -1,5 +1,5 @@
 <article class="post-card" data-card-id="{{ post.pk }}">
-  <a class="cover-link" href="{{ post.get_absolute_url }}" tabindex="-1" aria-hidden="true">
+  <a class="cover-link" href="{{ post.get_absolute_url }}{% if collection %}?collection={{ collection.slug }}{% endif %}" tabindex="-1" aria-hidden="true">
     {% include 'blog/_cover.html' %}
     <span class="cover-open">{% include 'blog/_icon.html' with name='arrow' %}</span>
   </a>
@@ -8,8 +8,10 @@
       <span>{% if post.category %}<a href="{{ post.category.get_absolute_url }}">{{ post.category.name }}</a>{% else %}Notes{% endif %}</span>
       <span>{{ post.reading_minutes }} min read</span>
     </div>
-    <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
+    <h3><a href="{{ post.get_absolute_url }}{% if collection %}?collection={{ collection.slug }}{% endif %}">{{ post.title }}</a></h3>
     <p class="card-summary">{{ post.summary }}</p>
+    {% if is_trending %}<p class="activity-label">{{ post.weekly_score }} response{{ post.weekly_score|pluralize }} this week</p>{% endif %}
+    {% if is_history %}<a class="history-resume" href="{{ post.get_absolute_url }}?resume=1" data-resume-card="{{ post.pk }}">Continue this story ↗</a>{% endif %}
     <div class="card-bottom">
       <div class="card-author">
         <a href="{% url 'author' post.author_id %}">{{ post.author_name }}</a>

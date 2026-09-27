@@ -21,6 +21,10 @@
   </section>
   {% endif %}
 
+  {% if is_discover %}{% include 'blog/_discovery_intro.html' %}{% endif %}
+  {% if active_category %}<div class="topic-follow-row">{% include 'blog/_follow_topic.html' with topic=active_category %}</div>{% endif %}
+  {% if is_for_you %}<p class="reader-page-actions"><a class="text-link" href="{% url 'discover' %}#topics">Choose your topics ↗</a></p>{% endif %}
+  {% if is_history %}<div class="reader-page-actions"><button class="reader-button" type="button" data-clear-history hidden>Clear reading history</button></div>{% endif %}
   {% if featured %}
   <section class="featured" aria-label="Featured article">
     <div class="featured-copy">
@@ -45,7 +49,7 @@
 
   <section class="journal" id="journal" aria-label="Articles">
     <div class="section-heading">
-      <div><p class="eyebrow">{% if is_reading_list %}KEPT FOR LATER{% elif q %}FOLLOW YOUR CURIOSITY{% else %}THE JOURNAL{% endif %}</p><h2>{% if is_home %}Latest articles{% else %}{{ title }}{% endif %}<span class="heading-dot">.</span></h2></div>
+      <div><p class="eyebrow">{% if is_reading_list %}KEPT FOR LATER{% elif q %}FOLLOW YOUR CURIOSITY{% else %}THE JOURNAL{% endif %}</p><h2>{% if is_home %}Latest articles{% elif is_discover %}Find your next read{% elif is_for_you %}Your latest stories{% elif is_history %}Pick up where you left off{% elif is_trending %}This week’s conversations{% else %}{{ title }}{% endif %}<span class="heading-dot">.</span></h2></div>
       <span class="article-count">{{ page_obj.paginator.count }} article{{ page_obj.paginator.count|pluralize }}{% if featured %} + editor’s pick{% endif %}</span>
     </div>
     <div class="discovery-bar">
@@ -55,32 +59,44 @@
       </nav>
       <form class="search-form" method="get" action="{{ request.path }}" role="search">
         {% if is_reading_list %}<input type="hidden" name="ids" value="{{ request.GET.ids }}">{% endif %}
+        {% if is_history %}<input type="hidden" name="ids" value="{{ request.GET.ids }}">{% endif %}
+        {% if is_for_you %}<input type="hidden" name="topics" value="{{ request.GET.topics }}">{% endif %}
         <div class="search-field">
           {% include 'blog/_icon.html' with name='search' %}
           <label class="sr-only" for="search">Search articles</label>
           <input id="search" type="search" name="q" value="{{ q }}" placeholder="Find an idea…" maxlength="120" aria-keyshortcuts="/">
           <kbd class="search-shortcut" aria-hidden="true">/</kbd>
         </div>
-        <label class="sr-only" for="sort">Sort articles</label>
+        {% if is_discover %}
+        <label class="sr-only" for="length">Reading length</label>
+        <select id="length" name="length">
+          <option value="">Any reading length</option>
+          <option value="short" {% if length == 'short' %}selected{% endif %}>3 min or less</option>
+          <option value="medium" {% if length == 'medium' %}selected{% endif %}>4–7 min</option>
+          <option value="long" {% if length == 'long' %}selected{% endif %}>8+ min</option>
+        </select>
+        {% endif %}
+        {% if not locked_order %}<label class="sr-only" for="sort">Sort articles</label>
         <select id="sort" name="sort">
           <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest first</option>
           <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest first</option>
           <option value="discussed" {% if sort == 'discussed' %}selected{% endif %}>Most discussed</option>
-        </select>
-        <button type="submit" aria-label="Search and sort">Search {% include 'blog/_icon.html' with name='arrow' %}</button>
+        </select>{% endif %}
+        <button type="submit" aria-label="{% if locked_order %}Search articles{% else %}Search and sort{% endif %}">Search {% include 'blog/_icon.html' with name='arrow' %}</button>
       </form>
     </div>
     {% if q %}<div class="active-filters"><span>Showing matches for <strong>“{{ q }}”</strong></span><a href="{{ request.path }}{% querystring q=None page=None %}">Clear search <span aria-hidden="true">×</span></a></div>{% endif %}
     {% if is_reading_list %}<noscript><p class="notice">Enable JavaScript to use your reading list. You can still browse and read articles.</p></noscript>{% endif %}
+    {% if is_for_you or is_history %}<noscript><p class="notice">Enable JavaScript to load your browser's reading preferences, or <a href="{% url 'discover' %}">discover articles</a>.</p></noscript>{% endif %}
     <div class="post-grid">
       {% for post in page_obj %}
         {% include 'blog/_card.html' %}
       {% empty %}
       <div class="empty-state">
         <span class="empty-icon" aria-hidden="true">{% if is_reading_list %}{% include 'blog/_icon.html' with name='bookmark' %}{% else %}{% include 'blog/_icon.html' with name='search' %}{% endif %}</span>
-        <h3>{% if is_reading_list %}Room for your next discovery.{% elif q %}No stories found just yet.{% else %}The first page is still being written.{% endif %}</h3>
-        <p>{% if is_reading_list %}Select “Save” on any article to keep the stories you would like to revisit here.{% elif q %}Try another keyword or explore all articles.{% else %}New articles will appear here as they are published.{% endif %}</p>
-        <a class="pill-button" href="{% url 'home' %}">Explore articles {% include 'blog/_icon.html' with name='arrow' %}</a>
+        <h3>{% if q %}No stories found just yet.{% elif is_for_you %}Make this space yours.{% elif is_history %}Your next reading session starts here.{% elif is_trending %}Start the conversation.{% elif is_discover %}A different length, a new discovery.{% elif is_reading_list %}Room for your next discovery.{% else %}The first page is still being written.{% endif %}</h3>
+        <p>{% if q %}Try another keyword or explore all articles.{% elif is_for_you %}Follow a topic on Discover to build your own feed.{% elif is_history %}Open a story and your place will be remembered here.{% elif is_trending %}Stories appear here as readers react and join the discussion this week.{% elif is_discover %}Try another reading length or explore all stories.{% elif is_reading_list %}Select “Save” on any article to keep the stories you would like to revisit here.{% else %}New articles will appear here as they are published.{% endif %}</p>
+        {% if is_home and not q and perms.blog_app.add_post %}<a class="pill-button" href="{% url 'admin:blog_app_post_add' %}">Write your first article {% include 'blog/_icon.html' with name='arrow' %}</a>{% elif is_for_you or is_history or is_trending or is_discover %}<a class="pill-button" href="{% url 'discover' %}">Discover stories ↗</a>{% else %}<a class="pill-button" href="{% url 'home' %}">Explore articles {% include 'blog/_icon.html' with name='arrow' %}</a>{% endif %}
       </div>
       {% endfor %}
     </div>

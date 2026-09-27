@@ -57,6 +57,11 @@ jobs:
         run: python manage.py collectstatic --noinput --dry-run
       - name: Run tests
         run: python -Wd manage.py test
+      - name: Verify guided first-run setup
+        if: matrix.python-version == '3.12'
+        run: |
+          env -u DJANGO_SECRET_KEY -u DJANGO_DEBUG -u DJANGO_ALLOWED_HOSTS python start.py --setup-only --demo
+          env -u DJANGO_SECRET_KEY -u DJANGO_DEBUG -u DJANGO_ALLOWED_HOSTS python start.py --setup-only --demo
 
   browser:
     timeout-minutes: 15
@@ -104,3 +109,4 @@ jobs:
               raise SystemExit('The preview server did not become ready.')
           PY
           python scripts/browser_check.py
+          python scripts/reader_check.py

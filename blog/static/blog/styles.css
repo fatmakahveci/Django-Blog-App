@@ -581,6 +581,11 @@ input[aria-invalid=true], textarea[aria-invalid=true] { border-color: var(--dang
   .article-header h1 { font-size: 37px; }
 }
 
+.preview-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; padding: 22px; margin-top: 28px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius); background: var(--paper); }
+.preview-banner strong { font-size: 15px; }
+.preview-banner p { margin: 6px 0 0; max-width: 65ch; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.preview-banner .pill-button { flex-shrink: 0; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; animation: none !important; }

@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.core.validators import MinLengthValidator
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Count, Q
 from django.urls import reverse
@@ -75,6 +76,7 @@ class Post(models.Model):
     slug = models.SlugField(max_length=180, unique=True, blank=True)
     excerpt = models.CharField(max_length=300, blank=True)
     body = models.TextField(validators=[MinLengthValidator(20)])
+    word_count = models.PositiveIntegerField(default=0, editable=False)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='blog_posts')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts')
     tags = models.ManyToManyField(Tag, blank=True, related_name='posts')
@@ -94,6 +96,10 @@ class Post(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = new_slug(type(self), self.title)
+        # Store the count for database-side reading-length filters.
+        self.word_count = len(self.body.split())
+        if kwargs.get('update_fields') and 'body' in kwargs['update_fields']:
+            kwargs['update_fields'] = {*kwargs['update_fields'], 'word_count'}
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -133,3 +139,82 @@ class Comment(models.Model):
 
     def __str__(self):
         return f'{self.name}: {self.body[:50]}'
+
+
+class SubmissionQuota(models.Model):
+    # Separate keyed digests for each action group; never persist raw IPs.
+    key = models.CharField(max_length=64, primary_key=True, editable=False)
+    expires_at = models.DateTimeField(db_index=True)
+    used = models.PositiveSmallIntegerField(default=0)
+
+
+class Collection(Topic):
+    description = models.CharField(max_length=300)
+    is_public = models.BooleanField(default=False)
+    posts = models.ManyToManyField(Post, through='CollectionEntry', related_name='collections')
+
+    def get_absolute_url(self):
+        return reverse('collection_detail', kwargs={'slug': self.slug})
+
+
+class CollectionEntry(models.Model):
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name='entries')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='collection_entries')
+    position = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['position', 'pk']
+        constraints = [models.UniqueConstraint(fields=['collection', 'post'], name='unique_collection_post')]
+
+    def __str__(self):
+        return f'{self.position}. {self.post.title}'
+
+
+class Reaction(models.Model):
+    class Kind(models.TextChoices):
+        USEFUL = 'useful', 'Useful'
+        INSIGHTFUL = 'insightful', 'Insightful'
+        INSPIRING = 'inspiring', 'Inspiring'
+
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reactions')
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    reader_digest = models.CharField(max_length=64, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['post', 'reader_digest'], name='unique_reader_reaction')]
+        indexes = [models.Index(fields=['post', 'created_at'], name='reaction_activity_idx')]
+
+
+class Poll(models.Model):
+    post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='poll')
+    question = models.CharField(max_length=180)
+    is_open = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.question
+
+
+class PollChoice(models.Model):
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name='choices')
+    label = models.CharField(max_length=120)
+    position = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['position', 'pk']
+
+    def __str__(self):
+        return self.label
+
+
+class PollVote(models.Model):
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name='votes')
+    choice = models.ForeignKey(PollChoice, on_delete=models.CASCADE, related_name='votes')
+    reader_digest = models.CharField(max_length=64, editable=False)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['poll', 'reader_digest'], name='unique_reader_poll_vote')]
+
+    def clean(self):
+        if self.choice_id and self.poll_id and self.choice.poll_id != self.poll_id:
+            raise ValidationError({'choice': 'Choose an answer from this poll.'})

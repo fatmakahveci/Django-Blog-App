@@ -1,0 +1,10 @@
+{% extends 'blog/base.html' %}
+{% block title %}{{ collection.name }} · Folio{% endblock %}
+{% block description %}{{ collection.description }}{% endblock %}
+{% block content %}
+<section class="page-intro"><p class="eyebrow">A FOLIO READING COLLECTION</p><h1>{{ collection.name }}</h1><p>{{ collection.description }}</p><p class="muted">{{ collection.article_count }} stories, in an order chosen by the editors.</p><a class="text-link" href="{% url 'collections' %}">← All collections</a></section>
+<ol class="post-grid collection-stories" start="{{ page_obj.start_index }}">
+  {% for post in page_obj %}<li><p class="eyebrow">READING {{ forloop.counter0|add:page_obj.start_index }}</p>{% include 'blog/_card.html' %}</li>{% endfor %}
+</ol>
+{% include 'blog/_collection_pagination.html' %}
+{% endblock %}

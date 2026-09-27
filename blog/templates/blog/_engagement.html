@@ -1,0 +1,28 @@
+<section class="reaction-panel" id="reactions" aria-labelledby="reaction-heading">
+  <p class="eyebrow">TAKE A MOMENT</p><h2 id="reaction-heading">What stayed with you?</h2>
+  <p class="muted">Choose one reaction. You can change it or remove it any time.</p>
+  <form method="post" action="{% url 'react' post.slug %}" class="reaction-options">
+    {% csrf_token %}
+    {% for reaction in reactions %}<button class="reader-button" name="kind" value="{{ reaction.kind }}" type="submit" aria-pressed="{{ reaction.selected|yesno:'true,false' }}">{{ reaction.label }} <span>{{ reaction.count }}</span></button>{% endfor %}
+    {% if selected_reaction %}<button class="reader-button subtle-button" name="kind" value="remove" type="submit">Remove reaction</button>{% endif %}
+  </form>
+  <p class="engagement-note">Your choice is remembered in this browser.</p>
+</section>
+{% if poll %}
+<section class="poll-panel" id="reader-poll" aria-labelledby="poll-heading">
+  <p class="eyebrow">THE READER’S CORNER</p><h2 id="poll-heading">{{ poll.question }}</h2>
+  {% if poll.is_open and not poll_choice %}
+  <form method="post" action="{% url 'vote' post.slug %}">
+    {% csrf_token %}
+    <fieldset><legend class="sr-only">Choose your answer</legend>{% for option in poll_options %}<label class="poll-answer"><input type="radio" name="choice" value="{{ option.pk }}" required> <span>{{ option.label }}</span></label>{% endfor %}</fieldset>
+    <button class="pill-button" type="submit">Cast my vote ↗</button>
+    <p class="engagement-note">One vote per browser. Your answer is final.</p>
+  </form>
+  {% else %}
+  <p class="muted">{% if poll_choice %}Thank you for adding your perspective.{% else %}This poll is closed.{% endif %}</p>
+  {% endif %}
+  <details class="poll-results" {% if poll_choice or not poll.is_open %}open{% endif %}><summary>Results · {{ poll_total }} vote{{ poll_total|pluralize }}</summary>
+    {% for option in poll_options %}<div class="poll-result"><div><span>{{ option.label }}{% if option.pk == poll_choice %} <strong>· Your vote</strong>{% endif %}</span><span>{{ option.percent }}% · {{ option.vote_count }} vote{{ option.vote_count|pluralize }}</span></div><meter min="0" max="100" value="{{ option.percent }}" aria-label="{{ option.label }}: {{ option.percent }} percent">{{ option.percent }}%</meter></div>{% endfor %}
+  </details>
+</section>
+{% endif %}

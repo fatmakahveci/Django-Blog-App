@@ -1,0 +1,9 @@
+{% extends 'blog/base.html' %}
+{% block title %}Reading collections · Folio{% endblock %}
+{% block content %}
+<section class="page-intro"><p class="eyebrow">READ WITH A LITTLE DIRECTION</p><h1>Good stories.<br>Better together.</h1><p>Handpicked reading paths, arranged by the editors. Follow an idea from one story to the next.</p></section>
+<div class="collection-grid collection-directory">
+  {% for collection in page_obj %}{% include 'blog/_collection_card.html' %}{% empty %}<div class="empty-state"><h2>A new collection is taking shape.</h2><p>Browse the journal while our editors put it together.</p><a class="pill-button" href="{% url 'home' %}">Explore articles ↗</a></div>{% endfor %}
+</div>
+{% include 'blog/_collection_pagination.html' %}
+{% endblock %}

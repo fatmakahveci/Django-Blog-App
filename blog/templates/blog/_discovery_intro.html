@@ -1,0 +1,18 @@
+<section class="discovery-welcome" aria-label="Find something new">
+  <div><p class="eyebrow">FOLLOW YOUR CURIOSITY</p><h2>One good story can<br>change your afternoon.</h2><p>Find a quick read, follow an interest, or let a little serendipity lead the way.</p></div>
+  <div class="discovery-actions"><a class="pill-button" href="{% url 'discover' %}?length=short#journal">Find a quick read ↗</a><a class="discovery-surprise" href="{% url 'surprise' %}">Surprise me ↗</a></div>
+</section>
+<section class="topic-section" id="topics" aria-labelledby="topics-heading">
+  <div class="section-heading"><h2 id="topics-heading">Find your people. Follow your interests.</h2><a class="text-link" data-for-you-link href="{% url 'for_you' %}">Your feed ↗</a></div>
+  <p class="muted">Follow the topics you enjoy. New stories will meet you in For you.</p>
+  <div class="topic-grid">
+    {% for topic in topics %}<article class="topic-card"><a href="{{ topic.get_absolute_url }}"><h3>{{ topic.name }}</h3></a><p>{{ topic.article_count }} article{{ topic.article_count|pluralize }}</p>{% include 'blog/_follow_topic.html' %}</article>{% empty %}<p class="muted">Topics will appear when the first stories are published.</p>{% endfor %}
+  </div>
+  <noscript><p class="notice">You can browse every topic here. Following topics requires JavaScript.</p></noscript>
+</section>
+{% if collections %}
+<section class="collection-section" aria-labelledby="collections-heading">
+  <div class="section-heading"><h2 id="collections-heading">A path worth following.</h2><a class="text-link" href="{% url 'collections' %}">All collections ↗</a></div>
+  <div class="collection-grid">{% for collection in collections %}{% include 'blog/_collection_card.html' %}{% endfor %}</div>
+</section>
+{% endif %}
